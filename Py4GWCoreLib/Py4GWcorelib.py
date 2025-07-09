@@ -681,6 +681,12 @@ class ColorPalette:
         "gold": Color(255, 215, 0),
         "gray": Color(128, 128, 128),
         "green": Color(0, 128, 0),
+        "gw_blue": Color(0, 170, 255, 255),
+        "gw_disabled":  Color(26, 26, 26, 255),
+        "gw_gold": Color(225, 150, 0, 255),
+        "gw_green": Color(25, 200, 0, 255),
+        "gw_purple": Color(110, 65, 200, 255),
+        "gw_white": Color(255, 255, 255, 255),
         "indigo": Color(75, 0, 130),
         "ivory": Color(255, 255, 240),
         "khaki": Color(240, 230, 140),
@@ -2319,13 +2325,8 @@ class LootConfig:
         from .Item import Item
         from .Player import Player
         from .Party import Party
-        if not Routines.Checks.Map.MapValid():
-            return []
         
         def IsValidItem(item_id):
-            if not Routines.Checks.Map.MapValid():
-                return False
-            
             if not Agent.IsValid(item_id):
                 return False    
             player_agent_id = Player.GetAgentID()
@@ -2333,9 +2334,6 @@ class LootConfig:
             return ((owner_id == player_agent_id) or (owner_id == 0))
 
         def IsValidFollowerItem(item_id):
-            
-            if not Routines.Checks.Map.MapValid():
-                return False
             if not Agent.IsValid(item_id):
                 return False 
             party_leader_id = Party.GetPartyLeaderID()
@@ -2378,44 +2376,42 @@ class LootConfig:
             if self.IsWhitelisted(model_id):
                 continue
             
-            if self.IsItemIDWhitelisted(item_id):
-                continue
-
             if self.IsBlacklisted(model_id):
                 loot_array.remove(agent_id)
                 continue
             
+            
+            # Rarity filtering
+            if Item.Rarity.IsWhite(item_id):
+                if not self.loot_whites:
+                    loot_array.remove(agent_id)
+                    continue
+
+            if Item.Rarity.IsBlue(item_id):
+                if not self.loot_blues:
+                    loot_array.remove(agent_id)
+                    continue
+
+            if Item.Rarity.IsPurple(item_id):
+                if not self.loot_purples:
+                    loot_array.remove(agent_id)
+                    continue
+
+            if Item.Rarity.IsGold(item_id):
+                if not self.loot_golds:
+                    loot_array.remove(agent_id)
+                    continue
+
+            if Item.Rarity.IsGreen(item_id):
+                if not self.loot_greens:
+                    loot_array.remove(agent_id)
+                    continue
+
+            
+            if self.IsItemIDWhitelisted(item_id):
+                continue
+            
             if self.IsItemIDBlacklisted(item_id):
-                loot_array.remove(agent_id)
-                continue
-
-            # --- Dye-specific handling ---
-            if model_id == ModelID.Vial_Of_Dye.value:
-                dye_info = Item.Customization.GetDyeInfo(item_id)
-                dye1_val = dye_info.dye1.ToInt()
-
-                if self.dye_whitelist and dye1_val not in self.dye_whitelist:
-                    loot_array.remove(agent_id)
-                    continue
-                if dye1_val in self.dye_blacklist:
-                    loot_array.remove(agent_id)
-                    continue
-                # Otherwise allowed to proceed based on rarity settings
-
-
-            if not self.loot_whites and Item.Rarity.IsWhite(item_id):
-                loot_array.remove(agent_id)
-                continue
-            if not self.loot_blues and Item.Rarity.IsBlue(item_id):
-                loot_array.remove(agent_id)
-                continue
-            if not self.loot_purples and Item.Rarity.IsPurple(item_id):
-                loot_array.remove(agent_id)
-                continue
-            if not self.loot_golds and Item.Rarity.IsGold(item_id):
-                loot_array.remove(agent_id)
-                continue
-            if not self.loot_greens and Item.Rarity.IsGreen(item_id):
                 loot_array.remove(agent_id)
                 continue
 
@@ -2475,6 +2471,7 @@ class AutoInventoryHandler():
         self.deposit_golds = True
         self.deposit_greens = True
         self.deposit_event_items = True
+        self.deposit_dyes = True
         self.keep_gold = 5000
         
         self.load_from_ini(self.ini, "AutoLootOptions")
@@ -2500,6 +2497,7 @@ class AutoInventoryHandler():
         self.ini.write_key(section, "deposit_trophies", str(self.deposit_trophies))
         self.ini.write_key(section, "deposit_materials", str(self.deposit_materials))
         self.ini.write_key(section, "deposit_event_items", str(self.deposit_event_items))
+        self.ini.write_key(section, "deposit_dyes", str(self.deposit_dyes))
         self.ini.write_key(section, "deposit_blues", str(self.deposit_blues))
         self.ini.write_key(section, "deposit_purples", str(self.deposit_purples))
         self.ini.write_key(section, "deposit_golds", str(self.deposit_golds))
@@ -2533,6 +2531,7 @@ class AutoInventoryHandler():
         self.deposit_trophies = ini.read_bool(section, "deposit_trophies", self.deposit_trophies)
         self.deposit_materials = ini.read_bool(section, "deposit_materials", self.deposit_materials)
         self.deposit_event_items = ini.read_bool(section, "deposit_event_items", self.deposit_event_items)
+        self.deposit_dyes = ini.read_bool(section, "deposit_dyes", self.deposit_dyes)
         self.deposit_blues = ini.read_bool(section, "deposit_blues", self.deposit_blues)
         self.deposit_purples = ini.read_bool(section, "deposit_purples", self.deposit_purples)
         self.deposit_golds = ini.read_bool(section, "deposit_golds", self.deposit_golds)
@@ -2612,6 +2611,10 @@ class AutoInventoryHandler():
             if quantity == 0:
                 continue
 
+            is_customized = GLOBAL_CACHE.Item.Properties.IsCustomized(item_id)
+            if is_customized:
+                # Skip customized items
+                continue
             _, rarity = GLOBAL_CACHE.Item.Rarity.GetRarity(item_id)
             is_white = rarity == "White"
             is_blue = rarity == "Blue"
@@ -2664,7 +2667,7 @@ class AutoInventoryHandler():
                 ActionQueueManager().AddAction("ACTION", Inventory.SalvageItem, item_id, salvage_kit)
 
                 if require_materials_confirmation:
-                    yield from Routines.Yield.wait(50)
+                    yield from Routines.Yield.wait(100)
                     yield from Routines.Yield.Items._wait_for_salvage_materials_window()
                     ActionQueueManager().AddAction("ACTION", Inventory.AcceptSalvageMaterialsWindow)
                     yield from Routines.Yield.wait(50)
@@ -2711,6 +2714,8 @@ class AutoInventoryHandler():
                 is_purple = rarity == "Purple"
                 is_gold = rarity == "Gold"
                 
+                model_id = GLOBAL_CACHE.Item.GetModelID(item_id)
+                
                 if is_tome:
                     GLOBAL_CACHE.Inventory.DepositItemToStorage(item_id)
                     yield from Routines.Yield.wait(350)
@@ -2736,6 +2741,19 @@ class AutoInventoryHandler():
                     yield from Routines.Yield.wait(350)
                 
                 if is_green and self.deposit_greens:
+                    GLOBAL_CACHE.Inventory.DepositItemToStorage(item_id)
+                    yield from Routines.Yield.wait(350)
+                    
+                if model_id == ModelID.Vial_Of_Dye.value and self.deposit_dyes:
+                    GLOBAL_CACHE.Inventory.DepositItemToStorage(item_id)
+                    yield from Routines.Yield.wait(350)
+                    
+                event_items = set()
+                
+                event_items.add(ModelID.Birthday_Cupcake.value)
+                event_items.add(ModelID.Victory_Token.value)
+                
+                if model_id in event_items and self.deposit_event_items:
                     GLOBAL_CACHE.Inventory.DepositItemToStorage(item_id)
                     yield from Routines.Yield.wait(350)
             
