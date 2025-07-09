@@ -451,7 +451,10 @@ class Compass():
         x -= 10
         y -= 10.5
 
-        ImGui.DrawTexturedRect(x, y, 18, 18, rf'D:\Games\Guild Wars\Py4GW\Widgets\Compass_Icons2\{texture_name}.png')
+        color = Utils.ColorToTuple(self.config.markers['Ally (NPC)'].color)
+        color = tuple([int(c * 255) for c in color])
+        ImGui.DrawTexturedRectExtended((x, y), (18, 18), rf'D:\Games\Guild Wars\Py4GW\Widgets\Compass_Icons2\{texture_name}2.png', tint = color) # type: ignore
+        ImGui.DrawTexturedRectExtended((x, y), (18, 18), rf'D:\Games\Guild Wars\Py4GW\Widgets\Compass_Icons2\{texture_name}.png', tint = color) # type: ignore
 
     def DrawAgents(self):
         def GetAgentValid(agent):
@@ -606,23 +609,23 @@ class Compass():
             if CheckCustomMarkers(agent): continue
             rot, is_target, is_alive = GetAgentParams(agent)
 
-            agent_name = GLOBAL_CACHE.Agent.GetName(agent.id)
-            texture_name = ''
-            for trader_type, filename in self.texture_map.items():
-                if trader_type in agent_name:
-                    texture_name = filename
-                    break
+            # agent_name = GLOBAL_CACHE.Agent.GetName(agent.id)
+            # texture_name = ''
+            # for trader_type, filename in self.texture_map.items():
+            #     if trader_type in agent_name:
+            #         texture_name = filename
+            #         break
 
-            if texture_name:
-                self.DrawAgentTexture(texture_name, self.config.markers['Ally (NPC)'], agent.x, agent.y)
+            # if texture_name:
+            #     self.DrawAgentTexture(texture_name, self.config.markers['Ally (NPC)'], agent.x, agent.y)
+            # else:
+            if agent.living_agent.has_quest:
+                self.DrawAgent(self.config.markers['Ally (NPC)'].visible, self.config.markers['Ally (NPC)'].size, 'Star', self.config.markers['Ally (NPC)'].color,
+                                            self.config.markers['Ally (NPC)'].fill_range, self.config.markers['Ally (NPC)'].fill_color, agent.x, agent.y, rot, is_alive, is_target)
+            elif agent.living_agent.level > 1:
+                self.DrawAgent(*self.config.markers['Ally (NPC)'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
             else:
-                if agent.living_agent.has_quest:
-                    self.DrawAgent(self.config.markers['Ally (NPC)'].visible, self.config.markers['Ally (NPC)'].size, 'Star', self.config.markers['Ally (NPC)'].color,
-                                                self.config.markers['Ally (NPC)'].fill_range, self.config.markers['Ally (NPC)'].fill_color, agent.x, agent.y, rot, is_alive, is_target)
-                elif agent.living_agent.level > 1:
-                    self.DrawAgent(*self.config.markers['Ally (NPC)'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
-                else:
-                    self.DrawAgent(*self.config.markers['Minipet'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
+                self.DrawAgent(*self.config.markers['Minipet'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
 
         if player_agent and GetAgentValid(player_agent):
             rot, is_target, is_alive = GetAgentParams(player_agent)
@@ -690,10 +693,10 @@ class Compass():
                                                                     self.position.current_pos.x, self.position.current_pos.y,
                                                                     self.position.current_size, self.position.rotation)
             
-                self.imgui.draw_list_add_circle(x, y, self.position.clicked_size, Utils.RGBToColor(255, 255, 0, 255), 24, 2)
-                self.position.clicked_size += 0.5
+                self.imgui.draw_list_add_circle(x, y, self.position.clicked_size, Utils.RGBToColor(255, 255, 0, 255 - self.position.clicked_size), 24, 10)
+                self.position.clicked_size += 0.1
 
-                if self.position.clicked_size > 40:
+                if self.position.clicked_size > 255:
                     self.position.clicked_size = 0
             
 
