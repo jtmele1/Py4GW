@@ -52,6 +52,18 @@ class Compass():
     primitives_set = False
     map_bounds = []
 
+    texture_map = {
+        '[Merchant]'             : 'merchant',
+        '[Material Trader]'      : 'common_mat',
+        '[Rare Material Trader]' : 'rare_mat',
+        '[Rune Trader]'          : 'rune',
+        '[Dye Trader]'           : 'dye',
+        '[Rare Scroll Trader]'   : 'scroll',
+        '[Weapons]'              : 'weapon',
+        '[Armor]'                : 'armor',
+        'Xunlai Chest'           : 'chest'
+    }
+
     class Position:
         frame_id   = 0
         snap_to_game = True
@@ -72,6 +84,9 @@ class Compass():
         current_size = 400
 
         rotation = 0.0
+
+        clicked_pos = (0.0, 0.0)
+        clicked_size = 0.0
 
         def Update(self):
             self.frame_id = Map.MiniMap.GetFrameID()
@@ -426,6 +441,18 @@ class Compass():
             self.imgui.draw_list_add_quad_filled(x1, y1, x2, y2, x3, y3, x4, y4, color)
             self.imgui.draw_list_add_quad(x1, y1, x2, y2, x3, y3, x4, y4, line_col, line_thickness)
 
+    def DrawAgentTexture(self, texture_name, visible, x, y):
+        if not Map.IsMapReady() or not visible: return
+
+        x, y = Map.MiniMap.MapProjection.GamePosToScreen(x, y, *self.position.player_pos,
+                                                                self.position.current_pos.x, self.position.current_pos.y,
+                                                                self.position.current_size, self.position.rotation)
+
+        x -= 10
+        y -= 10.5
+
+        ImGui.DrawTexturedRect(x, y, 18, 18, rf'D:\Games\Guild Wars\Py4GW\Widgets\Compass_Icons2\{texture_name}.png')
+
     def DrawAgents(self):
         def GetAgentValid(agent):
             if agent.id and Utils.Distance((agent.x, agent.y), self.position.player_pos) <= self.position.culling:
@@ -579,13 +606,23 @@ class Compass():
             if CheckCustomMarkers(agent): continue
             rot, is_target, is_alive = GetAgentParams(agent)
 
-            if agent.living_agent.has_quest:
-                self.DrawAgent(self.config.markers['Ally (NPC)'].visible, self.config.markers['Ally (NPC)'].size, 'Star', self.config.markers['Ally (NPC)'].color,
-                                            self.config.markers['Ally (NPC)'].fill_range, self.config.markers['Ally (NPC)'].fill_color, agent.x, agent.y, rot, is_alive, is_target)
-            elif agent.living_agent.level > 1:
-                self.DrawAgent(*self.config.markers['Ally (NPC)'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
+            agent_name = GLOBAL_CACHE.Agent.GetName(agent.id)
+            texture_name = ''
+            for trader_type, filename in self.texture_map.items():
+                if trader_type in agent_name:
+                    texture_name = filename
+                    break
+
+            if texture_name:
+                self.DrawAgentTexture(texture_name, self.config.markers['Ally (NPC)'], agent.x, agent.y)
             else:
-                self.DrawAgent(*self.config.markers['Minipet'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
+                if agent.living_agent.has_quest:
+                    self.DrawAgent(self.config.markers['Ally (NPC)'].visible, self.config.markers['Ally (NPC)'].size, 'Star', self.config.markers['Ally (NPC)'].color,
+                                                self.config.markers['Ally (NPC)'].fill_range, self.config.markers['Ally (NPC)'].fill_color, agent.x, agent.y, rot, is_alive, is_target)
+                elif agent.living_agent.level > 1:
+                    self.DrawAgent(*self.config.markers['Ally (NPC)'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
+                else:
+                    self.DrawAgent(*self.config.markers['Minipet'].values(), agent.x, agent.y, rot, is_alive, is_target) # type: ignore
 
         if player_agent and GetAgentValid(player_agent):
             rot, is_target, is_alive = GetAgentParams(player_agent)
@@ -644,10 +681,21 @@ class Compass():
             self.DrawRangeRings()
             if self.pathing.visible:
                 self.DrawPathing()
-            #timer = Timer()
-            #timer.Start()
+
             self.DrawAgents()
-            #Debug(timer.GetElapsedTime())
+
+            if self.position.clicked_size > 0:
+                x, y = self.position.clicked_pos
+                x, y = Map.MiniMap.MapProjection.GamePosToScreen(x, y, *self.position.player_pos,
+                                                                    self.position.current_pos.x, self.position.current_pos.y,
+                                                                    self.position.current_size, self.position.rotation)
+            
+                self.imgui.draw_list_add_circle(x, y, self.position.clicked_size, Utils.RGBToColor(255, 255, 0, 255), 24, 2)
+                self.position.clicked_size += 0.5
+
+                if self.position.clicked_size > 40:
+                    self.position.clicked_size = 0
+            
 
         self.imgui.end()
 
@@ -677,6 +725,9 @@ class Compass():
                                                                       self.position.current_size, 
                                                                       self.position.rotation)
                 GLOBAL_CACHE.Player.Move(*world_pos)
+
+                self.position.clicked_pos = world_pos
+                self.position.clicked_size = 1
 
     def Update(self):
         if not self.config_loaded:
