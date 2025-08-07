@@ -192,11 +192,11 @@ def InviteToParty(index, message):
     GLOBAL_CACHE.Party.Players.InvitePlayer(sender_data.CharacterName)
     yield from Routines.Yield.wait(100)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
-    # ConsoleLog(
-    #     MODULE_NAME,
-    #     "InviteToParty message processed and finished.",
-    #     Console.MessageType.Info,
-    # )
+    ConsoleLog(
+        MODULE_NAME,
+        "InviteToParty message processed and finished.",
+        Console.MessageType.Info,
+    )
 
 
 # endregion
@@ -213,11 +213,11 @@ def LeaveParty(index, message):
     GLOBAL_CACHE.Party.LeaveParty()
     yield from Routines.Yield.wait(100)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
-    # ConsoleLog(
-    #     MODULE_NAME,
-    #     "LeaveParty message processed and finished.",
-    #     Console.MessageType.Info,
-    # )
+    ConsoleLog(
+        MODULE_NAME,
+        "LeaveParty message processed and finished.",
+        Console.MessageType.Info,
+    )
 
 
 # endregion
@@ -239,11 +239,11 @@ def TravelToMap(index, message):
     yield from Routines.Yield.Map.TravelToRegion(map_id, map_region, map_district, language=0, log=True)
     yield from Routines.Yield.wait(100)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
-    # ConsoleLog(
-    #     MODULE_NAME,
-    #     "TravelToMap message processed and finished.",
-    #     Console.MessageType.Info,
-    # )
+    ConsoleLog(
+        MODULE_NAME,
+        "TravelToMap message processed and finished.",
+        Console.MessageType.Info,
+    )
 
 
 # endregion
@@ -261,7 +261,7 @@ def Resign(index, message):
     GLOBAL_CACHE.Player.SendChatCommand("resign")
     yield from Routines.Yield.wait(100)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
-    # ConsoleLog(MODULE_NAME, "Resign message processed and finished.", Console.MessageType.Info)
+    ConsoleLog(MODULE_NAME, "Resign message processed and finished.", Console.MessageType.Info)
 
 
 # endregion
@@ -834,9 +834,5 @@ def ProcessMessages():
 # endregion
 
 
-def main():
+def Update():
     ProcessMessages()
-
-
-if __name__ == "__main__":
-    main()

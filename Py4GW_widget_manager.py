@@ -281,22 +281,22 @@ def main():
             handler.discover_widgets()
             initialized = True
 
-        if window_module.first_run:
-            PyImGui.set_next_window_size(*window_module.window_size)
-            PyImGui.set_next_window_pos(*window_module.window_pos)
-            PyImGui.set_next_window_collapsed(window_module.collapse, 0)
-            window_module.first_run = False
+        # if window_module.first_run:
+        #     PyImGui.set_next_window_size(*window_module.window_size)
+        #     PyImGui.set_next_window_pos(*window_module.window_pos)
+        #     PyImGui.set_next_window_collapsed(window_module.collapse, 0)
+        #     window_module.first_run = False
 
-        current_window_collapsed = True
-        old_enable_all = enable_all
+        # current_window_collapsed = True
+        # old_enable_all = enable_all
 
-        if PyImGui.begin(window_module.window_name, window_module.window_flags):
-            current_window_pos = PyImGui.get_window_pos()
-            current_window_collapsed = False
-            draw_widget_ui()
-        PyImGui.end()
+        # if PyImGui.begin(window_module.window_name, window_module.window_flags):
+        #     current_window_pos = PyImGui.get_window_pos()
+        #     current_window_collapsed = False
+        #     draw_widget_ui()
+        # PyImGui.end()
 
-        write_ini()
+        # write_ini()
 
         if enable_all:
             handler.execute_enabled_widgets()

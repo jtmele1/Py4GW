@@ -43,6 +43,7 @@ from Py4GWCoreLib import Routines
 from Py4GWCoreLib import SharedCommandType
 from Py4GWCoreLib import UIManager
 from Py4GWCoreLib import Utils
+from Py4GWCoreLib import Player
 
 MODULE_NAME = "HeroAI"
 
@@ -371,6 +372,9 @@ def UpdateStatus(cached_data: CacheData):
     UpdateGameOptions(cached_data)
 
     cached_data.UpdateGameOptions()
+
+    if GLOBAL_CACHE.Party.IsPartyLeader():
+        return
 
     DrawEmbeddedWindow(cached_data)
     if cached_data.ui_state_data.show_classic_controls:
