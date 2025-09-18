@@ -66,7 +66,7 @@ def Draw():
     height = 28*len(vars.characters)
     PyImGui.set_next_window_pos(233, 947-height)
 
-    if PyBox._Utils.BeginWindow('Reroll'):
+    if PyBox._Utils.BeginWindow('Reroll', vars.is_showing):
         PyImGui.push_style_var2(ImGui.ImGuiStyleVar.ButtonTextAlign, 0, 0.5)
 
         for character in vars.characters:

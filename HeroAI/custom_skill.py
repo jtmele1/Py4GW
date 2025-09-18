@@ -83,6 +83,7 @@ class CustomSkillClass:
             self.TargetAllegiance = Skilltarget.Enemy.value
             self.Nature = SkillNature.Offensive.value
             self.Conditions = CustomSkillClass.CastConditions()
+            self.Aftercast = -1
 
     def __init__(self):
         self.skill_data = [self.CustomSkill() for _ in range(self.MaxSkillData)]
@@ -6771,6 +6772,7 @@ class CustomSkillClass:
         skill.SkillType = SkillType.Attack.value
         skill.TargetAllegiance = Skilltarget.Enemy.value
         skill.Nature = SkillNature.Offensive.value
+        skill.Aftercast = 150
         self.skill_data[skill.SkillID] = skill
 
         skill = self.CustomSkill()
@@ -6832,6 +6834,7 @@ class CustomSkillClass:
         skill.SkillType = SkillType.Attack.value
         skill.TargetAllegiance = Skilltarget.Enemy.value
         skill.Nature = SkillNature.Offensive.value
+        skill.Aftercast = 150
         self.skill_data[skill.SkillID] = skill
 
         skill = self.CustomSkill()

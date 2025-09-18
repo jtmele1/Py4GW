@@ -1,6 +1,7 @@
 # region imports
 from Py4GWCoreLib import *
 import PyBox._Utils
+from Widgets.frenkey.LootEx import settings, inventory_handling
 import ctypes
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -71,17 +72,49 @@ def Draw():
     PyImGui.set_next_window_pos(left + 140, top - 3)
 
     if PyBox._Utils.BeginHiddenWindow('InventoryOverlay'):
+        # if not settings.current.automatic_inventory_handling:
+        #     PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (0.6, 0.6, 0.6, 1))
+        #     if PyImGui.button(f'{IconsFontAwesome5.ICON_ARROWS_SPIN}##inventory'):
+        #         if settings.current.automatic_inventory_handling:
+        #             inventory_handling.InventoryHandler().Stop()
+        #         else:
+        #             inventory_handling.InventoryHandler().Start()
+        #     PyImGui.pop_style_color(1)
+        # else:
+        #     if PyImGui.button(f'{IconsFontAwesome5.ICON_ARROWS_SPIN}##inventory'):
+        #         if settings.current.automatic_inventory_handling:
+        #             inventory_handling.InventoryHandler().Stop()
+        #         else:
+        #             inventory_handling.InventoryHandler().Start()
         if PyImGui.button(f'{IconsFontAwesome5.ICON_ARROWS_SPIN}##inventory'):
-            ProcessInventory()
+            inventory_handling.InventoryHandler().Start()
+            inventory_handling.InventoryHandler().Run()
+            inventory_handling.InventoryHandler().Stop()
         PyImGui.same_line(0, 0)
 
-        if PyImGui.button(f'{IconsFontAwesome5.ICON_COG}##inventory'):
-            ...
+        if settings.current.manual_window_visible:
+            PyImGui.push_style_color(PyImGui.ImGuiCol.Text, PyBox._Utils.Colors.open)
+            if PyImGui.button(f'{IconsFontAwesome5.ICON_COG}##inventory'):
+                settings.current.manual_window_visible = not settings.current.manual_window_visible
+                settings.current.save()
+            PyImGui.pop_style_color(1)
+        else:
+            if PyImGui.button(f'{IconsFontAwesome5.ICON_COG}##inventory'):
+                settings.current.manual_window_visible = not settings.current.manual_window_visible
+                settings.current.save()
+            
         PyImGui.same_line(0, 0)
         
-        if PyImGui.button(f'{IconsFontAwesome5.ICON_BOX_OPEN}##inventory'):
-            if not Inventory.IsStorageOpen():
-                Inventory.OpenXunlaiWindow()
+        if Inventory.IsStorageOpen():
+            PyImGui.push_style_color(PyImGui.ImGuiCol.Text, PyBox._Utils.Colors.open)
+            if PyImGui.button(f'{IconsFontAwesome5.ICON_BOX_OPEN}##inventory'):
+                if not Inventory.IsStorageOpen():
+                    Inventory.OpenXunlaiWindow()
+            PyImGui.pop_style_color(1)
+        else:
+            if PyImGui.button(f'{IconsFontAwesome5.ICON_BOX_OPEN}##inventory'):
+                if not Inventory.IsStorageOpen():
+                    Inventory.OpenXunlaiWindow()
 
     PyImGui.end()
 
@@ -90,4 +123,4 @@ def Draw():
 def Update():
     if PyBox._Utils.CanDraw():
         Draw()
-        CtrlClickItem()
+        #CtrlClickItem()

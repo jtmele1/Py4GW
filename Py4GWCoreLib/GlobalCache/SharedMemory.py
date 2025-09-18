@@ -1,5 +1,5 @@
 import Py4GW
-from Py4GWCoreLib import ConsoleLog, Map, Party, Player, Agent, Effects, SharedCommandType, ThrottledTimer
+from Py4GWCoreLib import ConsoleLog, Map, Party, Player, Agent, Effects, SharedCommandType, ThrottledTimer, PySkillbar
 from ctypes import Structure, c_int, c_uint, c_float, c_bool, c_wchar
 from multiprocessing import shared_memory
 from ctypes import sizeof
@@ -8,7 +8,7 @@ import time
 
 SHMEM_MAX_EMAIL_LEN = 64
 SHMEM_MAX_CHAR_LEN = 20
-SHMEM_MAX_NUMBER_OF_BUFFS = 240
+SHMEM_MAX_NUMBER_OF_BUFFS = 24
 SHMEM_MAX_NUM_PLAYERS = 64
 SMM_MODULE_NAME = "Py4GW - Shared Memory"
 SHMEM_SHARED_MEMORY_FILE_NAME = "Py4GW_Shared_Mem"
@@ -54,6 +54,7 @@ class AccountData(Structure):
         ("PatyIsPartyLeader", c_bool),
         ("PlayerBuffs", c_uint * SHMEM_MAX_NUMBER_OF_BUFFS),  # Buff IDs
         ("LastUpdated", c_uint),
+        ("Skillbar", c_uint * SHMEM_NUMBER_OF_SKILLS),
     ]
     
 class SharedMessage(Structure):
@@ -107,6 +108,7 @@ class Py4GWSharedMemoryManager:
             self.map_instance = Map.map_instance()
             self.party_instance = None #Party.party_instance()
             self.player_instance = None #Player.player_instance()
+            self.skillbar_instance = None 
             self.throttle_timer_150 = ThrottledTimer(150)
             self.throttle_timer_63 = ThrottledTimer(63) # 4 frames at 15 FPS
         
@@ -172,6 +174,8 @@ class Py4GWSharedMemoryManager:
             player.PartyID = 0
             player.PartyPosition = 0
             player.PatyIsPartyLeader = False
+            for j in range(SHMEM_NUMBER_OF_SKILLS):
+                player.Skillbar[j] = 0
             for j in range(SHMEM_MAX_NUMBER_OF_BUFFS):
                 player.PlayerBuffs[j] = 0
             player.LastUpdated = self.GetBaseTimestamp()
@@ -274,6 +278,8 @@ class Py4GWSharedMemoryManager:
                 self.party_instance.GetContext()
             if self.player_instance is not None:
                 self.player_instance.GetContext()
+            if self.skillbar_instance is not None:
+                self.skillbar_instance.GetContext()
             
             return
             
@@ -281,11 +287,15 @@ class Py4GWSharedMemoryManager:
             self.party_instance = Party.party_instance()
         if self.player_instance is None:
             self.player_instance = Player.player_instance()
+        if self.skillbar_instance is None:
+            self.skillbar_instance = PySkillbar.Skillbar()
+
             
         if self.throttle_timer_150.IsExpired():   
             self.throttle_timer_150.Reset()
             self.party_instance.GetContext()
             self.player_instance.GetContext()
+            self.skillbar_instance.GetContext()
         
         if self.throttle_timer_63.IsExpired():
             self.throttle_timer_63.Reset()
@@ -328,7 +338,8 @@ class Py4GWSharedMemoryManager:
                 return
             
             if (self.party_instance is None or 
-                self.player_instance is None):
+                self.player_instance is None or 
+                self.skillbar_instance is None):
                 return
             
             if not self.map_instance.is_map_ready:
@@ -376,6 +387,8 @@ class Py4GWSharedMemoryManager:
             effects_instance = Effects.get_instance(self.player_instance.id)
             buff_list = effects_instance.GetBuffs()
             effect_list = effects_instance.GetEffects()
+            for j in range(SHMEM_NUMBER_OF_SKILLS):
+                player.Skillbar[j] = self.skillbar_instance.GetSkill(j+1).id.id
             for j in range(SHMEM_MAX_NUMBER_OF_BUFFS):
                 player.PlayerBuffs[j] = 0
                 

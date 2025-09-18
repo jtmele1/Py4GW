@@ -7,12 +7,14 @@ initialized                  = False
 bot_funcs                    = BotRoutines()
 bot_vars                     = BotVariables()
 bot_vars.gui.window_name     = 'Vaettir Farm'
-bot_vars.farm_item.name      = 'Stones'
-bot_vars.farm_item.model_id  = ModelID.Glacial_Stone
+bot_vars.farm_item.name      = 'Grog'
+bot_vars.farm_item.model_id  = ModelID.Bottle_Of_Grog
 bot_vars.farm_item.color     = [.32, .66, .75, 1]
 bot_vars.loot.pickup_list    = {ModelID.Glacial_Stone          : ('Glacial Stones', True),
+                                ModelID.Bottle_Of_Grog         : ('Grog', True),
                                 ModelID.Gold_Coins             : ('Gold Coins'    , False),
-                                'salvageables'                 : ('Salvageables'  , True),
+                                ModelID.Wayfarer_Mark          : ('Wayfaerer\'s Marks', True),
+                                #'salvageables'                 : ('Salvageables'  , True),
                                 ModelID.Map_Piece_Bottom_Left  : ('BL Map Piece'  , False),
                                 ModelID.Map_Piece_Bottom_Right : ('BR Map Piece'  , False),
                                 ModelID.Map_Piece_Top_Left     : ('TL Map Piece'  , False),
@@ -107,12 +109,12 @@ def HandleStuck(destination: tuple):
             Log('Cannot un-stuck - resetting.', msg_type = 'Error')
             if Agent.IsDead(Player.GetAgentID()):
                 return True
-            yield from wait(1)
-            continue
+            while Agent.IsAlive(Player.GetAgentID()):
+                yield from wait(1)
         
         # check position
         pos_ = Player.GetXY()
-        if pos != pos_:
+        if Utils.Distance(pos, pos_) > 100:
             Log('Successfully un-stuck!', msg_type = 'Success')
             return False
         
@@ -180,7 +182,7 @@ def WaitForSettle():
             break
 
         yield from StayAlive()
-        yield from wait(.5)
+        yield from wait(.1)
 
     timer.Reset()
     while not timer.HasElapsed(3000):
@@ -188,7 +190,7 @@ def WaitForSettle():
             return
 
         yield from StayAlive()
-        yield from wait(.5)
+        yield from wait(.1)
 
 def SelectTarget():
     enemy_array = AgentArray.GetEnemyArray()
@@ -316,7 +318,7 @@ def BotLogic():
         SetStatus(bot_vars, 'Resetting.')
         if Party.GetPartySize() == 1:
             while Agent.IsDead(Player.GetAgentID()):
-                    yield from wait(1)
+                yield from wait(1)
             if Map.GetMapID() == Maps.bjora:
                 yield from bot_funcs.Maps.Travel(Maps.long)
                 SetStatus(bot_vars, 'Leaving Longeyes.')

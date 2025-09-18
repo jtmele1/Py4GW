@@ -36,6 +36,7 @@ class Compass():
     imgui = PyImGui
     overlay = PyOverlay.Overlay()
     renderer = DXOverlay()
+    mm_renderer = DXOverlay()
 
     reset      = True
     player_id  = 0
@@ -43,18 +44,18 @@ class Compass():
     geometry   = []
     primitives_set = False
     map_bounds = []
-
-    texture_map = {
-        '[Merchant]'             : 'merchant',
-        '[Material Trader]'      : 'common_mat',
-        '[Rare Material Trader]' : 'rare_mat',
-        '[Rune Trader]'          : 'rune',
-        '[Dye Trader]'           : 'dye',
-        '[Rare Scroll Trader]'   : 'scroll',
-        '[Weapons]'              : 'weapon',
-        '[Armor]'                : 'armor',
-        'Xunlai Chest'           : 'chest'
-    }
+    mission_map_instance = PyMissionMap.PyMissionMap()
+    boundaries = []
+    left_bound = 0.0
+    top_bound = 0.0
+    right_bound = 0.0
+    bottom_bound = 0.0
+    left = 0
+    top = 0
+    right = 0
+    bottom = 0
+    width = 0
+    height = 0
 
     class Position:
         frame_id   = 0
@@ -417,7 +418,7 @@ class Compass():
         else:
             scale = [1,1,1,1]
             if shape == 'Tear':
-                scale = [2,1,1,1]
+                scale = [2,1,0.9,1]
             elif shape == 'Square':
                 scale = [1,1,1,1]
             
@@ -601,16 +602,6 @@ class Compass():
             if CheckCustomMarkers(agent): continue
             rot, is_target, is_alive = GetAgentParams(agent)
 
-            # agent_name = GLOBAL_CACHE.Agent.GetName(agent.id)
-            # texture_name = ''
-            # for trader_type, filename in self.texture_map.items():
-            #     if trader_type in agent_name:
-            #         texture_name = filename
-            #         break
-
-            # if texture_name:
-            #     self.DrawAgentTexture(texture_name, self.config.markers['Ally (NPC)'], agent.x, agent.y)
-            # else:
             if agent.living_agent.has_quest:
                 self.DrawAgent(self.config.markers['Ally (NPC)'].visible, self.config.markers['Ally (NPC)'].size, 'Star', self.config.markers['Ally (NPC)'].color,
                                             self.config.markers['Ally (NPC)'].fill_range, self.config.markers['Ally (NPC)'].fill_color, agent.x, agent.y, rot, is_alive, is_target)
@@ -639,6 +630,69 @@ class Compass():
                     self.DrawAgent(*self.config.markers['Item (Green)'].values(), agent.x, agent.y, rot, True, is_target) # type: ignore
                 case _:
                     self.DrawAgent(*self.config.markers['Item (White)'].values(), agent.x, agent.y, rot, True, is_target) # type: ignore
+
+    def RawGamePosToScreen(self, x:float, y:float, zoom:float, left_bound:float, top_bound:float, boundaries:list[float],
+                       pan_offset_x:float, pan_offset_y:float, scale_x:float, scale_y:float,
+                       mission_map_screen_center_x:float, mission_map_screen_center_y:float) -> tuple[float, float]:
+
+        GWINCHES = 96.0
+
+        if len(boundaries) < 5:
+            return 0.0, 0.0  # fail-safe
+
+        min_x = boundaries[1]
+        max_y = boundaries[4]
+
+        # Step 3: Compute origin on the world map based on boundary distances
+        origin_x = left_bound + abs(min_x) / GWINCHES
+        origin_y = top_bound + abs(max_y) / GWINCHES
+
+        # Step 4: Convert game-space (gwinches) to world map space (screen)
+        screen_x = (x / GWINCHES) + origin_x
+        screen_y = (-y / GWINCHES) + origin_y  # Inverted Y
+
+        offset_x = screen_x - pan_offset_x
+        offset_y = screen_y - pan_offset_y
+
+        scaled_x = offset_x * scale_x
+        scaled_y = offset_y * scale_y
+
+        zoom_total = zoom
+
+        screen_x = scaled_x * zoom_total + mission_map_screen_center_x
+        screen_y = scaled_y * zoom_total + mission_map_screen_center_y
+
+        return screen_x, screen_y
+
+    def DrawMissionMap(self):
+        self.mission_map_instance.GetContext()
+
+        coords = self.mission_map_instance.left, self.mission_map_instance.top, self.mission_map_instance.right, self.mission_map_instance.bottom
+        self.left, self.top, self.right, self.bottom = int(coords[0]), int(coords[1]), int(coords[2]), int(coords[3])
+        self.width = self.right - self.left
+        self.height = self.bottom - self.top
+        
+        self.pan_offset_x, self.pan_offset_y = self.mission_map_instance.pan_offset_x, self.mission_map_instance.pan_offset_y
+        self.scale_x, self.scale_y = self.mission_map_instance.scale_x, self.mission_map_instance.scale_y
+
+        self.zoom = self.mission_map_instance.zoom
+        self.mission_map_screen_center_x, self.mission_map_screen_center_y = self.mission_map_instance.mission_map_screen_center_x, self.mission_map_instance.mission_map_screen_center_y
+
+
+        self.mm_renderer.world_space.set_world_space(True)
+        
+        self.mm_renderer.mask.set_rectangle_mask_bounds(self.left, self.top, self.width, self.height)
+        
+        self.map_origin = self.RawGamePosToScreen(0.0, 0.0, 
+                                                 self.zoom,
+                                                 self.left_bound, self.top_bound, self.boundaries,
+                                                 self.pan_offset_x, self.pan_offset_y, self.scale_x, self.scale_y,
+                                                 self.mission_map_screen_center_x, self.mission_map_screen_center_y)
+        
+        self.mm_renderer.world_space.set_pan(self.map_origin[0], self.map_origin[1])
+        self.mm_renderer.world_space.set_zoom(self.zoom/96)
+        self.mm_renderer.world_space.set_scale(self.scale_x)
+        self.mm_renderer.render()
 
     def Draw(self):
         self.UpdateOrientation()
@@ -676,8 +730,9 @@ class Compass():
             self.DrawRangeRings()
             if self.pathing.visible:
                 self.DrawPathing()
-
             self.DrawAgents()
+            if Map.MissionMap.IsWindowOpen():
+                self.DrawMissionMap()
 
             if self.position.clicked_size > 0:
                 x, y = self.position.clicked_pos
@@ -690,7 +745,6 @@ class Compass():
 
                 if self.position.clicked_size > 255:
                     self.position.clicked_size = 0
-            
 
         self.imgui.end()
 
@@ -743,10 +797,19 @@ class Compass():
         if Map.IsMapReady() and Party.IsPartyLoaded() and not UIManager.IsWorldMapShowing() and not Map.IsInCinematic():
             if self.reset:
                 self.reset          = False
+
                 self.geometry       = Map.Pathing.GetComputedGeometry()
                 self.primitives_set = False
                 self.map_bounds     = list(GLOBAL_CACHE.Map.GetMapBoundaries())
+
                 self.position.Update()
+
+                self.boundaries = Map.map_instance().map_boundaries
+                self.left_bound, self.top_bound, self.right_bound, self.bottom_bound = Map.GetMapWorldMapBounds()
+                
+                self.mm_renderer.set_primitives(self.geometry, Color(255, 255, 255, 80).to_dx_color())
+                
+                self.mm_renderer.mask.set_rectangle_mask(True)
 
             self.Draw()
             self.CheckClick()

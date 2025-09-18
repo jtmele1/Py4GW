@@ -480,7 +480,7 @@ class InventoryCache:
         """
         Locate the bag ID and slot of the given item ID in inventory bags (1, 2, 3, 4).
         """
-        bags_to_check = [1, 2, 3, 4]
+        bags_to_check = list(range(1, 23))
         bags = self._raw_item_cache.get_bags(bags_to_check)
 
         for bag in bags:

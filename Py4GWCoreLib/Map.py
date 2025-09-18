@@ -587,19 +587,19 @@ class Map:
         def GetAdjustedZoom(_zoom, zoom_offset=0.0):
             """Adjust the zoom level of the mission map."""
             zoom = _zoom + zoom_offset
-            if zoom == 1.0:
-                return zoom + 0.0
+            # if zoom == 1.0:
+            #     return zoom + 0.0
             
-            if 1.0 < zoom <= 1.5:
-                return zoom + 0.0449
+            # if 1.0 < zoom <= 1.5:
+            #     return zoom + 0.0449
             
-            if zoom > 1.5:
-                step = 0.5
-                # Snap to step count safely
-                times = int((zoom - 1.5 + 1e-6) // step)  # avoids float precision issues
-                return zoom + (0.0449 + (0.02449 * times))
+            # if zoom > 1.5:
+            step = 0.5
+            # Snap to step count safely
+            times = (zoom - 1.5 + 1e-6) // step  # avoids float precision issues
+            return zoom + (0.0449 + (0.02449 * times))
             
-            return zoom + 0.0
+            # return zoom + 0.0
         
         @staticmethod
         def GetCenter():

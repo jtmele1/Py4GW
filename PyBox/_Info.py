@@ -1,17 +1,76 @@
 # region imports
 from Py4GWCoreLib import *
 import PyBox._Utils
+import re
 # endregion
 
 class Variables:
     icon              = IconsFontAwesome5.ICON_INFO_CIRCLE
     is_showing        = False
+    queues = [
+        'ACTION',
+        'LOOT',
+        'MERCHANT',
+        'SALVAGE',
+        'IDENTIFY',  
+    ]
+    GLOBAL_CACHE._ActionQueueManager
+    hovered_item      = 0
+    hovered_skill     = 0
     lookup_skill      = 0
     first_run         = True
 
 vars = Variables()
 
-def DrawCameraInfo():
+def DrawActionQueue():
+    global vars
+
+    if PyImGui.collapsing_header('Action Queue##info'):
+        PyImGui.indent(11)
+        if PyImGui.begin_tab_bar("InfoTabBar"):
+            for queue_name in vars.queues:
+                if PyImGui.begin_tab_item(queue_name.capitalize()):
+                    action_queue = GLOBAL_CACHE._ActionQueueManager.GetAllActionNames(queue_name)
+                    action_history = GLOBAL_CACHE._ActionQueueManager.GetHistoryNames(queue_name)
+
+                    if PyImGui.begin_child("InfoCurrentActions", size=(295, 76), border=True, flags=PyImGui.WindowFlags.HorizontalScrollbar):
+                        for action in action_queue:
+                            PyImGui.text(f"{action}")
+                        PyImGui.end_child()
+                        
+                    if PyImGui.button("Clear Queue", 96):
+                        GLOBAL_CACHE._ActionQueueManager.ResetQueue(queue_name)
+                        
+                    PyImGui.same_line(0, -1)
+                    if PyImGui.button("Clear History", 95):
+                        GLOBAL_CACHE._ActionQueueManager.ClearHistory(queue_name)
+                     
+                    PyImGui.same_line(0, -1)  
+                    if PyImGui.button("Copy", 96):
+                        PyImGui.set_clipboard_text("\n".join(action_history))
+                        
+                    if PyImGui.begin_child("InfoHistoryActions", size=(295, 152),border=True, flags=PyImGui.WindowFlags.HorizontalScrollbar):
+                        for action in reversed(action_history):
+                            PyImGui.text(f"{action}")
+                        PyImGui.end_child()
+                    PyImGui.end_tab_item() 
+            PyImGui.end_tab_bar()
+        PyImGui.unindent(11)
+
+def DrawCoroutines():
+    if PyImGui.collapsing_header('Coroutines##info'):
+        PyImGui.indent(11)
+        if PyImGui.button('Clear All##coroutines', 295):
+            GLOBAL_CACHE.Coroutines.clear()
+        for routine in GLOBAL_CACHE.Coroutines:
+            name = routine.__qualname__
+            #if PyImGui.button(f'Remove##{name}',height = 12):
+            #    ...
+            #PyImGui.same_line(0, -1)  
+            PyImGui.text(name)
+        PyImGui.unindent(11)
+
+def DrawCamera():
     if PyImGui.collapsing_header('Camera##info'):
         PyImGui.indent(11)
         pos    = GLOBAL_CACHE.Camera.GetPosition()
@@ -50,7 +109,7 @@ def DrawPlayer():
         if effects:
             PyImGui.text('Effects:')
             for effect in effects:
-                PyImGui.text(f'id: {effect.skill_id} | attriute lvl: {effect.attribute_level} | remaining: {round(effect.time_remaining/1000)}')
+                PyImGui.text(f'ID: {effect.skill_id} | Attribute Lvl: {effect.attribute_level} | Remaining: {math.floor(effect.time_remaining/1000)}')
         PyImGui.unindent(11)
 
 def DrawTarget():
@@ -71,7 +130,7 @@ def DrawTarget():
         if effects:
             PyImGui.text('Effects:')
             for effect in effects:
-                PyImGui.text(f'id: {effect.skill_id} | attriute lvl: {effect.attribute_level} | remaining: {round(effect.time_remaining/1000)}')
+                PyImGui.text(f'ID: {effect.skill_id} | Attribute Lvl: {effect.attribute_level} | Remaining: {math.floor(effect.time_remaining/1000)}')
         PyImGui.unindent(11)
 
 def DrawMap():
@@ -91,19 +150,25 @@ def DrawMap():
         PyImGui.unindent(11)
 
 def DrawHoveredItem():
+    global vars
+
     if PyImGui.collapsing_header('Hovered Item##info'):
         PyImGui.indent(11)
         item_id = GLOBAL_CACHE.Inventory.GetHoveredItemID()
 
         if item_id:
-            slot = GLOBAL_CACHE.Inventory.FindItemBagAndSlot(item_id)
-            model_id = GLOBAL_CACHE.Item.GetModelID(item_id)
-            name = GLOBAL_CACHE.Item.GetName(item_id)
-            type = GLOBAL_CACHE.Item.GetItemType(item_id)
-            mods = GLOBAL_CACHE.Item.Customization.Modifiers.GetModifiers(item_id)
+            vars.hovered_item = item_id
 
-            PyImGui.input_text('Bag, Slot##item', f'{slot[0]}, {slot[1]}', PyImGui.InputTextFlags.ReadOnly)
-            PyImGui.input_text('Item ID##item', f'{item_id}', PyImGui.InputTextFlags.ReadOnly)
+        if vars.hovered_item:
+            bag, slot = GLOBAL_CACHE.Inventory.FindItemBagAndSlot(vars.hovered_item)
+            bag_name = Bags(bag).name if bag else 'None'
+            model_id = GLOBAL_CACHE.Item.GetModelID(vars.hovered_item)
+            name = GLOBAL_CACHE.Item.GetName(vars.hovered_item)
+            type = GLOBAL_CACHE.Item.GetItemType(vars.hovered_item)
+            mods = GLOBAL_CACHE.Item.Customization.Modifiers.GetModifiers(vars.hovered_item)
+
+            PyImGui.input_text('Bag, Slot##item', f'{bag_name} ({bag}), {slot}', PyImGui.InputTextFlags.ReadOnly)
+            PyImGui.input_text('Item ID##item', f'{vars.hovered_item}', PyImGui.InputTextFlags.ReadOnly)
             PyImGui.input_text('Model ID##item', f'{model_id}', PyImGui.InputTextFlags.ReadOnly)
             PyImGui.input_text('Name##item', f'{name}', PyImGui.InputTextFlags.ReadOnly)
             PyImGui.input_text('Type##item', f'{type[1]} ({type[0]})', PyImGui.InputTextFlags.ReadOnly)
@@ -112,6 +177,7 @@ def DrawHoveredItem():
                 PyImGui.text('Mod Structs (identifier, arg1, arg2)')
                 for i, mod in enumerate(mods):
                     struct = hex(int(mod.GetModBits(),2))
+                    struct = struct[:2] + struct[2:].upper()
                     id   = mod.GetIdentifier()
                     arg1 = mod.GetArg1()
                     arg2 = mod.GetArg2()
@@ -120,17 +186,23 @@ def DrawHoveredItem():
         PyImGui.unindent(11)
 
 def DrawHoveredSkill():
+    global vars
+
     if PyImGui.collapsing_header('Hovered Skill##info'):
         PyImGui.indent(11)
         id = GLOBAL_CACHE.SkillBar.GetHoveredSkillID()
+        
+        if id in SkillTextureMap:
+            vars.hovered_skill = id
+        
+        if vars.hovered_skill:
+            name = SkillTextureMap[vars.hovered_skill]
+            name = re.sub(r'^\[\d+\]\s*-\s*(.*?)\.[^.]+$', r'\1', name, flags=re.IGNORECASE)
+            prof = Skill.GetProfession(vars.hovered_skill)
+            attr = Skill.Attribute.GetAttribute(vars.hovered_skill)
+            type = Skill.GetType(vars.hovered_skill)
 
-        if id:
-            name = Skill.GetName(id)
-            prof = Skill.GetProfession(id)
-            attr = Skill.Attribute.GetAttribute(id)
-            type = Skill.GetType(id)
-
-            PyImGui.input_text('ID##hskill', f'{id}', PyImGui.InputTextFlags.ReadOnly)
+            PyImGui.input_text('ID##hskill', f'{vars.hovered_skill}', PyImGui.InputTextFlags.ReadOnly)
             PyImGui.input_text('Name##hskill', f'{name}', PyImGui.InputTextFlags.ReadOnly)
             PyImGui.input_text('Profession##hskill', f'{prof[1]} ({prof[0]})', PyImGui.InputTextFlags.ReadOnly)
             PyImGui.input_text('Attribute##hskill', f'{attr.GetName()} ({int(attr.attribute_id)})', PyImGui.InputTextFlags.ReadOnly)
@@ -144,10 +216,18 @@ def DrawLookupSkill():
         PyImGui.indent(11)
         vars.lookup_skill = PyImGui.input_int('ID##lskill', vars.lookup_skill)
 
-        name = Skill.GetName(vars.lookup_skill)
-        prof = Skill.GetProfession(vars.lookup_skill)
-        attr = Skill.Attribute.GetAttribute(vars.lookup_skill)
-        type = Skill.GetType(vars.lookup_skill)
+        id = 0
+        if vars.lookup_skill in SkillTextureMap:
+            id = vars.lookup_skill
+
+        if id:
+            name = SkillTextureMap[id]
+            name = re.sub(r'^\[\d+\]\s*-\s*(.*?)\.[^.]+$', r'\1', name, flags=re.IGNORECASE)
+        else:
+            name = 'No Skill'
+        prof = Skill.GetProfession(id)
+        attr = Skill.Attribute.GetAttribute(id)
+        type = Skill.GetType(id)
 
         PyImGui.input_text('Name##lskill', f'{name}', PyImGui.InputTextFlags.ReadOnly)
         PyImGui.input_text('Profession##lskill', f'{prof[1]} ({prof[0]})', PyImGui.InputTextFlags.ReadOnly)
@@ -163,10 +243,12 @@ def Draw():
         PyImGui.set_next_window_pos(900, 500)
 
     PyImGui.set_next_window_size(315, -1)
-    if PyBox._Utils.BeginWindow('Info'):
+    if PyBox._Utils.BeginWindow('Info', vars.is_showing):
         PyImGui.indent(1)
 
-        DrawCameraInfo()
+        DrawActionQueue()
+        DrawCoroutines()
+        DrawCamera()
         DrawPlayer()
         DrawTarget()
         DrawMap()

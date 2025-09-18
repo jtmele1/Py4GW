@@ -4,8 +4,8 @@ from Py4GWCoreLib import *
 
 class Colors:
     open = (.94, .85, .38, 1)
-    on   = (0, 0.7, 0, 1)
-    off  = (1, 0.25, 0.23, 1)
+    on   = (0, 1, 0, 1)
+    off  = (1, 0.20, 0.18, 1)
 
 def Debug(message, title = 'DEBUG', msg_type = 'Debug'):
     py4gw_msg_type = Py4GW.Console.MessageType.Debug
@@ -27,7 +27,7 @@ def CanDraw():
 def SendInfoChat(msg, color = 'FFFF00'):
     Player.SendFakeChat(ChatChannel.CHANNEL_GROUP, f'<c=#88BBFF>[PyBox]</c> <c=#{color}>{msg}</c>')
 
-def BeginWindow(name):
+def BeginWindow(name, opened = True):
     flags = (PyImGui.WindowFlags.AlwaysAutoResize  |
              PyImGui.WindowFlags.NoScrollWithMouse | 
              PyImGui.WindowFlags.NoSavedSettings)
@@ -36,6 +36,7 @@ def BeginWindow(name):
     PyImGui.push_style_var2(ImGui.ImGuiStyleVar.WindowPadding,    4, 4)
     PyImGui.push_style_var( ImGui.ImGuiStyleVar.WindowRounding,   0)
     PyImGui.push_style_var( ImGui.ImGuiStyleVar.FrameRounding,    0)
+    PyImGui.push_style_var( ImGui.ImGuiStyleVar.TabRounding,      0)
     PyImGui.push_style_var2(ImGui.ImGuiStyleVar.ItemSpacing,      4, 4)
 
     PyImGui.push_style_color(PyImGui.ImGuiCol.SliderGrab,       (.9, .9, .9, 1))
@@ -58,11 +59,20 @@ def BeginWindow(name):
     PyImGui.push_style_color(PyImGui.ImGuiCol.TitleBgActive,    (0, 0, 0, 0.7))
     PyImGui.push_style_color(PyImGui.ImGuiCol.TitleBgCollapsed, (0, 0, 0, 0.7))
 
-    return PyImGui.begin(name, flags)
+    PyImGui.push_style_color(PyImGui.ImGuiCol.TableBorderStrong, (.5, .5, .5, 0.3))
+    PyImGui.push_style_color(PyImGui.ImGuiCol.TableBorderLight,  (.5, .5, .5, 0.3))
+
+    PyImGui.push_style_color(PyImGui.ImGuiCol.Tab,        (.5, .5, .5, 0.3))
+    PyImGui.push_style_color(PyImGui.ImGuiCol.TabHovered, (.5, .5, .5, 0.4))
+    PyImGui.push_style_color(PyImGui.ImGuiCol.TabActive,  (.5, .5, .5, 0.5))
+
+    PyImGui.push_style_color(PyImGui.ImGuiCol.Border,     (.5, .5, .5, 0.3))
+
+    return PyImGui.begin_with_close(name, opened, flags)
 
 def EndWindow():
-    PyImGui.pop_style_var(5)
-    PyImGui.pop_style_color(15)
+    PyImGui.pop_style_var(6)
+    PyImGui.pop_style_color(21)
 
 def BeginHeadlessWindow(name):
     flags = (PyImGui.WindowFlags.NoTitleBar        | 

@@ -16,9 +16,9 @@ class PCon:
         self.timer.Start()
 
 def LoadConfig(ini):
-    essense    = PCon('Essence_of_Celerity'   , ModelID.Essence_Of_Celerity    , 1522, ini.read_bool('pcons', 'essence'    , False))
-    grail      = PCon('Grail_of_Might'        , ModelID.Grail_Of_Might         , 1521, ini.read_bool('pcons', 'grail'      , False))
-    armor      = PCon('Armor_of_Salvation'    , ModelID.Armor_Of_Salvation     , 1520, ini.read_bool('pcons', 'armor'      , False))
+    essense    = PCon('Essence_of_Celerity'   , ModelID.Essence_Of_Celerity    , 2522, ini.read_bool('pcons', 'essence'    , False))
+    grail      = PCon('Grail_of_Might'        , ModelID.Grail_Of_Might         , 2521, ini.read_bool('pcons', 'grail'      , False))
+    armor      = PCon('Armor_of_Salvation'    , ModelID.Armor_Of_Salvation     , 2520, ini.read_bool('pcons', 'armor'      , False))
     red_rock   = PCon('Red_Rock_Candy'        , ModelID.Red_Rock_Candy         , 2973, ini.read_bool('pcons', 'red_rock'   , False))
     blue_rock  = PCon('Blue_Rock_Candy'       , ModelID.Blue_Rock_Candy        , 2971, ini.read_bool('pcons', 'blue_rock'  , False))
     green_rock = PCon('Green_Rock_Candy'      , ModelID.Green_Rock_Candy       , 2972, ini.read_bool('pcons', 'green_rock' , False))
@@ -87,7 +87,7 @@ def Draw():
 
     PyImGui.set_next_window_pos(233, 807) # 412
 
-    if PyBox._Utils.BeginWindow('Consumables'):
+    if PyBox._Utils.BeginWindow('Consumables', vars.is_showing):
         text = 'Disabled'
         color = PyBox._Utils.Colors.off
 
@@ -141,11 +141,11 @@ def Draw():
 def Update():
     global vars
 
+    if vars.is_showing and PyBox._Utils.CanDraw():
+        Draw()
+
     if not Map.IsMapReady() or not Party.IsPartyLoaded():
         return
-    
-    if vars.is_showing:
-        Draw()
 
     for pcon in vars.config:
         pcon.count = GLOBAL_CACHE.Inventory.GetModelCount(pcon.model_id)

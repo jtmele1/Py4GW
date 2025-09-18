@@ -37,11 +37,8 @@ class SkillBarPlus:
                 coords = UIManager.GetFrameCoords(frame_id)
                 self.coords.append(coords)
 
-                self.skill_ids.append(SkillBar.GetSkillIDBySlot(i+1))
-            
-            if len(self.coords) < 8 or len(self.skill_ids) < 8:
+            if len(self.coords) < 8:
                 self.coords = []
-                self.skill_ids = []
 
         def DrawText(self, caption, text, x, y, w, h):
             PyImGui.set_next_window_pos(x, y)
@@ -58,12 +55,14 @@ class SkillBarPlus:
             PyImGui.push_style_var(ImGui.ImGuiStyleVar.WindowRounding, 0)
             PyImGui.push_style_var(ImGui.ImGuiStyleVar.WindowBorderSize, 0)
             PyImGui.push_style_var2(ImGui.ImGuiStyleVar.WindowPadding, 0, 0)
+            PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (1,1,1,1))
             
             if PyImGui.begin(caption, flags):
                 PyImGui.text(text)
             PyImGui.end()
 
             PyImGui.pop_style_var(3)
+            PyImGui.pop_style_color(1)
 
         def DrawBackground(self, coords, color):
             left, top, right, bottom = coords
@@ -112,14 +111,14 @@ class SkillBarPlus:
             self.overlay.BeginDraw()
 
             if not self.coords: return
-            if not self.skill_ids: return
 
             for i in range(8):
                 if self.draw_bg or self.draw_duration:
+                    skill_id = GLOBAL_CACHE.SkillBar.GetSkillIDBySlot(i+1)
                     duration = 0
                     remaining = 0
                     for effect in GLOBAL_CACHE.Effects.GetEffects(GLOBAL_CACHE.Player.GetAgentID()):
-                        if effect.skill_id == self.skill_ids[i]:
+                        if effect.skill_id == skill_id:
                             duration = effect.duration
                             remaining = effect.time_remaining/1000
                             break
@@ -203,31 +202,38 @@ class SkillBarPlus:
 
             PyImGui.pop_style_color(1)
             PyImGui.pop_style_var(3)
-            
-            return result
 
         def Draw(self):
+            active = []
+
             for effect in GLOBAL_CACHE.Effects.GetEffects(GLOBAL_CACHE.Player.GetAgentID()):
                 frame_id = UIManager.GetChildFrameID(1726357791, [effect.skill_id + 4])
                 if not UIManager.FrameExists(frame_id): 
                     continue
-                frame_coords = UIManager.GetFrameCoords(frame_id)
 
                 time_remaining = effect.time_remaining/1000
                 if time_remaining > 30*60:
                     continue
                 time_remaining = math.floor(time_remaining) if time_remaining > 1 else round(time_remaining,1)
-                time_remaining = str(time_remaining)
 
-                _, _, right, bottom = frame_coords
+                active.append((effect.skill_id, frame_id, time_remaining))
+
+            unique_ids = set([act[0] for act in active])
+
+            for skill_id in unique_ids:
+                filtered = [act for act in active if act[0] == skill_id]
+                newest = max(filtered, key=lambda act: act[2])
+                effect, frame_id, time_remaining = newest
+
+                _, _, right, bottom = UIManager.GetFrameCoords(frame_id)
 
                 ImGui.push_font("Regular", self.font_size)
-                
+                time_remaining = str(time_remaining)
                 text_width, text_height = PyImGui.calc_text_size(time_remaining)
                 text_width = text_width + 4
                 text_height = text_height*.75 + 4
 
-                self.DrawText(f'effect{effect.skill_id}', time_remaining, right - text_width, bottom - text_height, text_width, text_height)
+                self.DrawText(f'effect{skill_id}', time_remaining, right - text_width, bottom - text_height, text_width, text_height)
 
                 ImGui.pop_font()
 
@@ -553,7 +559,6 @@ def Update():
             skills.Draw()
             effects.Draw()
             auto.Cast()
-            auto.action_queue.ProcessAll()
 
             if PyImGui.get_io().key_alt and IsKeyPressed(2) and auto.enable_click and auto.click_timer.HasElapsed(200):
                 skill_id = SkillBar.GetHoveredSkillID()

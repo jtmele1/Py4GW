@@ -43,8 +43,24 @@ def PrintAge():
     time = FormatTime(Map.GetInstanceUptime(), 'mm:ss.ms')
     PyBox._Utils.SendInfoChat(f'Time: {time}')
 
+class Clicker():
+    active = False
+    timer = Timer()
+    timer.Start()
+
+    def Toggle(self):
+        self.active = not self.active
+
+    def Run(self):
+        if self.active and self.timer.HasElapsed(50):
+            print('click')
+            Keystroke.PressAndRelease(0x01)
+            self.timer.Reset()
+clicker = Clicker()
+
 class Variables:
-    hotkeys = [Hotkey(4,  PrintAge)] 
+    hotkeys = [Hotkey(4,  PrintAge),
+               Hotkey(46, clicker.Toggle)] 
 
 vars = Variables()
 
@@ -65,7 +81,9 @@ def Draw():
 def Update():
     global vars
 
-    if InFocus():
+    if PyBox._Utils.CanDraw() and InFocus():
         for hotkey in vars.hotkeys:
             if is_key_pressed(hotkey.key):
                 hotkey.Activate()
+
+        clicker.Run()

@@ -33,6 +33,13 @@ class BotRoutines:
     log_items  = False
     log_all    = False
 
+    @staticmethod
+    def EnsureStep(func, condition, timeout = None):
+        timer = Timer()
+        timer.Start()
+        while not condition() or (timeout and timer.HasElapsed(timeout)):
+            yield from func()
+
     class Player:
         @staticmethod
         def SendDialog(dialog_id):
@@ -180,6 +187,11 @@ class BotRoutines:
                 if BotRoutines.log_skills or BotRoutines.log_all:
                     Log(f'Casting "{name}" - Slot [{slot}].')
 
+                if (not BotRoutines.Skills.IsRecharged(slot) or
+                    not BotRoutines.Skills.HasEnoughEnergy(slot) or
+                    not BotRoutines.Skills.HasEnoughAdrenaline(slot)):
+                    continue
+
                 key = None
                 if   slot == 1: key = Key.One.value
                 elif slot == 2: key = Key.Two.value
@@ -194,6 +206,8 @@ class BotRoutines:
 
                 if wait_for_aftercast:
                     yield from wait(max(min_aftercast/1000, BotRoutines.Skills.GetAftercast(slot)/1000))
+                else:
+                    yield
 
         @staticmethod
         def IsRecharged(slot):
@@ -369,8 +383,8 @@ class BotRoutines:
             yield from wait(.1)
 
         @staticmethod
-        def WaitForArrival(map_id):
-            while not (Map.IsMapReady() and Map.GetMapID() == map_id and Party.IsPartyLoaded()):
+        def WaitForArrival(map_id = None):
+            while not (Map.IsMapReady() and Party.IsPartyLoaded() and (map_id == None or Map.GetMapID() == map_id)):
                 yield from wait(.5)
             if BotRoutines.log_maps or BotRoutines.log_all:
                 Log(f'Arrived at {Map.GetMapName(map_id)} - MapID [{map_id}].')
@@ -386,7 +400,7 @@ class BotRoutines:
                 yield from BotRoutines.Maps.WaitForArrival(map_id)
 
         @staticmethod
-        def ResignAndReturn(map_id):
+        def ResignAndReturn(map_id = None):
             yield from BotRoutines.Player.SendChatCommand('resign')
             while not Party.IsPartyDefeated():
                 yield from wait(.5)

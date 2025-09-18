@@ -2,17 +2,18 @@
 import sys
 import importlib
 from Py4GWCoreLib import *
+from Py4GW_widget_manager import WidgetHandler
 
 window_module = ImGui.WindowModule('Py4GW', window_name = 'Py4GW', window_flags = PyImGui.WindowFlags.AlwaysAutoResize)
 
 module_names = ['_PCons', '_Objectives', '_Reroll', '_Hotkeys', '_Builds', '_Travel','_Info', '_Messaging', '_Titles', '_Materials',
-                '_Bonds', '_Compass', '_Inventory', '_Misc', '_Party', '_Skillbar', '_EnvUpkeep', '_Utils']
+                '_Dailies', '_Bonds', '_Compass', '_Inventory', '_Misc', '_Party', '_Skillbar', '_EnvUpkeep', '_Utils', '_Botting']
 
 for module_name in module_names:
     try:
         del sys.modules[f'PyBox.{module_name}']
     except Exception as e:
-        print(f"Error unloading module {module_name}: {e}")
+        pass
 
 modules = {}
 for name in module_names:
@@ -28,6 +29,8 @@ class Variables:
 
 vars = Variables()
 
+widget_handler = WidgetHandler()
+
 def DrawWidgetWindow():
     global vars, modules
 
@@ -36,13 +39,13 @@ def DrawWidgetWindow():
         return
     
     left, top, right, bottom = UIManager.GetFrameCoords(frame_id)
+    PyImGui.set_next_window_pos(left + 342, top - 3) # 438, 408
 
-    PyImGui.set_next_window_pos(left + 408, top - 3) # 438, 408
-
-
-    widget_modules = ['_PCons', '_Builds', '_Reroll', '_Titles', '_Travel', '_Materials', '_Info']
     if modules['_Utils'].BeginHiddenWindow('ToggleButtons'):
+        widget_modules = ['_PCons', '_Builds', '_Reroll', '_Dailies', '_Travel', '_Materials', '_Botting', '_Info']
         for module in widget_modules:
+            if module not in modules:
+                continue
             if not hasattr(modules[module], 'vars'):
                 continue
 
@@ -59,10 +62,12 @@ def DrawWidgetWindow():
 
             if PyImGui.button(f'{modules[module].vars.icon}##widgets'):
                 modules[module].vars.is_showing = not modules[module].vars.is_showing
-                for module_ in widget_modules:
-                    if module_ == module:
-                        continue
-                    modules[module_].vars.is_showing = False
+
+                if module != '_Info':
+                    for module_ in widget_modules:
+                        if module_ in [module, '_Info']:
+                            continue
+                        modules[module_].vars.is_showing = False
 
             PyImGui.pop_style_color(1)
             PyImGui.same_line(0, 0)
@@ -74,6 +79,9 @@ def DrawWidgetWindow():
 
         # if PyImGui.button(f'{IconsFontAwesome5.ICON_GEAR}##widgets'):
         #     vars.show_settings = not vars.show_settings
+
+        if PyImGui.button(f'{IconsFontAwesome5.ICON_RETWEET}##widgets'):
+            widget_handler.discover_widgets()
 
         PyImGui.end()
 

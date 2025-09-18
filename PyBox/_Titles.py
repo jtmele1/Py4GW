@@ -5,14 +5,7 @@ import PyBox._Utils
 
 class Variables:
     icon              = IconsFontAwesome5.ICON_LIST_CHECK
-    can_show_button   = True
-    is_showing_button = True
     is_showing        = False
-    is_snappable      = False
-    offset_x          = 0
-    offset_y          = 0
-    pos_x             = 500
-    pos_y             = 500
 
     titles = {
         'Hero' : 0,

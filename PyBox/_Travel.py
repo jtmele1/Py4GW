@@ -45,9 +45,9 @@ vars = Variables()
 def Draw():
     global vars, config
 
-    PyImGui.set_next_window_pos(233, 807) # 292
+    PyImGui.set_next_window_pos(233, 835) # 292
 
-    if PyBox._Utils.BeginWindow('Travel'):
+    if PyBox._Utils.BeginWindow('Travel', vars.is_showing):
         if Map.GetContinent()[0] == 1: # presearing
             common = [
                 ('Ascalon City'        , 148),
@@ -78,9 +78,7 @@ def Draw():
                 ('Kamadan, Jewel of Istan'   , 449),
                 ('Gate of Anguish'           , 474),
                 ('Embark Beach'              , 857),
-                ('Great Temple of Balthazar' , 248),
-                ('Urgoz\'s Warren'           , 266),
-                ('The Deep'                  , 307)
+                ('Great Temple of Balthazar' , 248)
             ]
 
             newline = False
@@ -101,5 +99,5 @@ def Draw():
 def Update():
     global vars, config
 
-    if vars.is_showing:
+    if PyBox._Utils.CanDraw() and vars.is_showing:
         Draw()

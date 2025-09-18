@@ -1162,19 +1162,20 @@ class CombatClass:
             
         self.in_casting_routine = True
 
-        
-        if self.fast_casting_exists:
-            activation, recharge = Routines.Checks.Skills.apply_fast_casting(skill_id, self.fast_casting_level)
-        else:
-            activation = GLOBAL_CACHE.Skill.Data.GetActivation(skill_id)
+        if self.skills[slot].custom_skill_data.Aftercast == -1:
+            if self.fast_casting_exists:
+                activation, recharge = Routines.Checks.Skills.apply_fast_casting(skill_id, self.fast_casting_level)
+            else:
+                activation = GLOBAL_CACHE.Skill.Data.GetActivation(skill_id)
 
-        self.aftercast = activation * 1000
-        self.aftercast += GLOBAL_CACHE.Skill.Data.GetAftercast(skill_id) * 1000 #750
-        
-        skill_type, _ = GLOBAL_CACHE.Skill.GetType(skill_id)
-        if skill_type == SkillType.Attack.value:
-            self.aftercast += self.GetWeaponAttackAftercast()
+            self.aftercast = activation * 1000
+            self.aftercast += GLOBAL_CACHE.Skill.Data.GetAftercast(skill_id) * 1000 #750
             
+            skill_type, _ = GLOBAL_CACHE.Skill.GetType(skill_id)
+            if skill_type == SkillType.Attack.value:
+                self.aftercast += self.GetWeaponAttackAftercast()
+        else:
+            self.aftercast = self.skills[slot].custom_skill_data.Aftercast
             
         self.aftercast += self.ping_handler.GetCurrentPing()
 

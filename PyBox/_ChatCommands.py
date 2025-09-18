@@ -15,14 +15,7 @@ def is_key_pressed(vk_code):
 
 class Variables:
     icon              = IconsFontAwesome5.ICON_USER_FRIENDS
-    can_show_button   = True
-    is_showing_button = True
     is_showing        = False
-    is_snappable      = False
-    offset_x          = 0
-    offset_y          = 0
-    pos_x             = 500
-    pos_y             = 500
 
     focus_set = False
     waiting_for_ready = False

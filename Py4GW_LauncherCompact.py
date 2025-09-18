@@ -930,7 +930,7 @@ class GWLauncher:
                 self.launch_gw(account)
 
                 # Dynamic idle message update
-                idle_time = 15  # Seconds
+                idle_time = 5  # Seconds
                 for remaining in range(idle_time, 0, -1):
                     log_history[-1] = f"Idling... {remaining}s remaining to prevent log-in throttle"
                     time.sleep(1)  # Sleep 1 second and update countdown dynamically
@@ -1206,7 +1206,7 @@ def show_team_view():
             imgui.spacing()
             
             # Button to launch all accounts in the team sequentially
-            if imgui.button(f"Launch {team_name}##{id(team)}"):
+            if imgui.button(f"Launch All##{id(team)}"):
                 log_history.append(f"Launching all accounts for team: {team_name}")
                 launch_gw.start_team_launch_thread(team)  # Use the new threaded function
 
@@ -1215,19 +1215,11 @@ def show_team_view():
 
             # List all accounts in the team
             for account in team.accounts:
-                if imgui.tree_node(f"{account.character_name}##{id(account)}"):
-                    imgui.spacing()
-                    
-                    # Launch individual accounts
-                    if imgui.button(f"Launch {account.character_name}##{id(account)}"):
-                        log_history.append(f"Launching account: {account.character_name}")
-                        launch_gw.launch_gw(account)
-
-                    imgui.tree_pop()
-
+                # Launch individual accounts
+                if imgui.button(f"Launch {account.character_name}##{id(account)}"):
+                    log_history.append(f"Launching account: {account.character_name}")
+                    launch_gw.launch_gw(account)
             imgui.tree_pop()
-
-
 
 def show_account_content():
     """

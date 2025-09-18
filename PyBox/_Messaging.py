@@ -760,17 +760,43 @@ def UseSkillFromMessage(index, message):
         yield from RestoreHeroAISnapshot(account_email)
         yield from Routines.Yield.wait(100)
 
-    cast_params = message.Params[0]
+    def cast_slot(slot_number):
+        global cached_data
 
-    if combat_prep_first_skills_check:
-        hero_ai_has_ritualist_skills = curr_agent_has_ritualist_skills()
-        hero_ai_has_paragon_skills = curr_agent_has_paragon_skills()
-        combat_prep_first_skills_check = False
+        # --- Disable Hero AI ---
+        yield from SnapshotHeroAIOptions(account_email)
+        yield from DisableHeroAIOptions(account_email)
 
-    if cast_params == CombatPrepSkillsType.SpiritsPrep and hero_ai_has_ritualist_skills:
-        yield from cast_rit_spirits()
-    elif cast_params == CombatPrepSkillsType.ShoutsPrep and hero_ai_has_paragon_skills:
-        yield from cast_paragon_shouts()
+        try:
+            if not cached_data.combat_handler.IsReadyToCast(slot_number):
+                return
+
+            if Routines.Yield.Skills.CastSkillSlot(slot_number, aftercast_delay=200):
+                yield from Routines.Yield.wait(1250)
+
+        except Exception as e:
+            ConsoleLog(MODULE_NAME, f"Error during casting: {e}", Console.MessageType.Error)
+            yield from Routines.Yield.wait(500)  # optional backoff
+
+        # --- Re-enable Hero AI ---
+        yield from RestoreHeroAISnapshot(account_email)
+        yield from Routines.Yield.wait(100)
+
+    skill_slot = int(message.Params[0])
+    cast_params = message.Params[1]
+    if not cast_params:
+        print(f'casting {skill_slot}')
+        yield from cast_slot(skill_slot)
+    else:
+        if combat_prep_first_skills_check:
+            hero_ai_has_ritualist_skills = curr_agent_has_ritualist_skills()
+            hero_ai_has_paragon_skills = curr_agent_has_paragon_skills()
+            combat_prep_first_skills_check = False
+
+        if cast_params == CombatPrepSkillsType.SpiritsPrep and hero_ai_has_ritualist_skills:
+            yield from cast_rit_spirits()
+        elif cast_params == CombatPrepSkillsType.ShoutsPrep and hero_ai_has_paragon_skills:
+            yield from cast_paragon_shouts()
 
     yield from Routines.Yield.wait(100)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)

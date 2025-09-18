@@ -1155,10 +1155,10 @@ class ActionQueueManager:
     def _initialize_queues(self):
         self.queues = {
             "ACTION": ActionQueueNode(50),
-            "LOOT": ActionQueueNode(1250),
-            "MERCHANT": ActionQueueNode(750),
-            "SALVAGE": ActionQueueNode(125),
-            "IDENTIFY": ActionQueueNode(150)
+            "LOOT": ActionQueueNode(50),
+            "MERCHANT": ActionQueueNode(50),
+            "SALVAGE": ActionQueueNode(50),
+            "IDENTIFY": ActionQueueNode(50)
             # Add more queues here if needed
         }
         
@@ -2218,12 +2218,12 @@ class LootConfig:
         self._initialized = True
 
     def reset(self):
-        self.loot_gold_coins = False
-        self.loot_whites = False
-        self.loot_blues = False
-        self.loot_purples = False
-        self.loot_golds = False
-        self.loot_greens = False
+        self.loot_gold_coins = True
+        self.loot_whites = True
+        self.loot_blues = True
+        self.loot_purples = True
+        self.loot_golds = True
+        self.loot_greens = True
         self.whitelist = set()  # Avoid duplicates
         self.blacklist = set()
         self.item_id_blacklist = set()  # For items that are blacklisted by ID
@@ -2231,7 +2231,7 @@ class LootConfig:
         self.dye_whitelist = set()
         self.dye_blacklist = set()
 
-    def SetProperties(self, loot_whites=False, loot_blues=False, loot_purples=False, loot_golds=False, loot_greens=False, loot_gold_coins=False):
+    def SetProperties(self, loot_whites=True, loot_blues=True, loot_purples=True, loot_golds=True, loot_greens=True, loot_gold_coins=True):
         self.loot_gold_coins = loot_gold_coins
         self.loot_whites = loot_whites
         self.loot_blues = loot_blues

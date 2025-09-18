@@ -62,14 +62,14 @@ def Draw():
     player_time = FormatTimer(vars.timer.GetElapsedTime(), mask = mask)
     instance_time = FormatTimer(GLOBAL_CACHE.Map.GetInstanceUptime(), mask = mask)
 
-    PyImGui.set_next_window_pos(1285, 1360) # 242,896
+    PyImGui.set_next_window_pos(1285 + 65, 1360) # 242,896
     ImGui.push_font("Regular", 40)
     if PyBox._Utils.BeginHiddenWindow('TimerWidget1'):
         PyImGui.text_colored(f'{player_time}\n{instance_time}', (0,0,0,1))
         PyImGui.end()
     PyBox._Utils.EndHiddenWindow()
 
-    PyImGui.set_next_window_pos(1283, 1358) # 240,894
+    PyImGui.set_next_window_pos(1283 + 65, 1358) # 240,894
     if PyBox._Utils.BeginHiddenWindow('TimerWidget2'):
         PyImGui.text(f'{player_time}\n{instance_time}')
     PyBox._Utils.EndHiddenWindow()
@@ -89,5 +89,5 @@ def Update():
             vars.timer.Reset()
         Draw()
         
-        if GLOBAL_CACHE.Party.IsPartyDefeated():
-            GLOBAL_CACHE.Party.ReturnToOutpost()
+        # if GLOBAL_CACHE.Party.IsPartyDefeated():
+        #     GLOBAL_CACHE.Party.ReturnToOutpost()
